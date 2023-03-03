@@ -16,8 +16,6 @@ use std::process::exit;
 use std::{fs::copy, path::Path, thread::sleep};
 use xshell::{cmd, Shell};
 
-// This is great
-
 #[derive(Clone, Debug)]
 pub struct KubeLift;
 
@@ -133,7 +131,7 @@ fn up() -> Result<()> {
                 Spinners::Dots,
                 format!("Accepting Azure Marketplace terms for {image}").into(),
             );
-            let _terms_accept = cmd!(sh, "az vm image termsQQQ accept --urn {image}")
+            let _terms_accept = cmd!(sh, "az vm image terms accept --urn {image}")
                 .quiet()
                 .ignore_stderr()
                 .read()?;
@@ -182,7 +180,7 @@ fn up() -> Result<()> {
     );
     let _nsg: String = cmd!(
         sh,
-        "az vm open-port --resource-group kubelift-{instance_id} --name {instance_id} --port 6443"
+        "az vm open-port --resource-group kubelift-{instance_id} --name {instance_id} --port '*'"
     )
     .quiet()
     .ignore_stderr()
