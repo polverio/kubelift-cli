@@ -20,4 +20,5 @@ pub struct KubeLiftConfigOptions {
     pub image: String,
     pub location: String,
     pub size: String,
+    pub tags: String
 }

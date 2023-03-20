@@ -57,6 +57,7 @@ fn init() -> Result<()> {
         location: westeurope
         size: Standard_B4ms
         image: polverio:kubelift:solo:latest
+        tags: kubelift-instance=true
     "#;
 
     let config: KubeLiftConfig = serde_yaml::from_str(default_yaml).unwrap();
@@ -92,6 +93,7 @@ fn up() -> Result<()> {
     let location = kubelift_config.options.location;
     let size = kubelift_config.options.size;
     let image: String = kubelift_config.options.image;
+    let tags: String = kubelift_config.options.tags;
 
     // cmd!(sh, "az account list --query '[?isDefault]'")
     //     .quiet()
@@ -166,7 +168,7 @@ fn up() -> Result<()> {
         Spinners::Dots,
         "Creating appliance from Azure Marketplace".into(),
     );
-    let vm: String = cmd!(sh, "az vm create --resource-group kubelift-{instance_id} --name {instance_id} --image {image} --admin-username kubelift --generate-ssh-keys --size {size} --public-ip-sku Standard")
+    let vm: String = cmd!(sh, "az vm create --resource-group kubelift-{instance_id} --name {instance_id} --image {image} --admin-username kubelift --generate-ssh-keys --size {size} --public-ip-sku Standard --tags {tags}")
         .quiet()
         .ignore_stderr()
         .read()?;
@@ -324,24 +326,24 @@ impl Appliance for KubeLift {
         println!("This is the Azure plugin for KubeLift!")
     }
 
-    fn up(&self) {
-        up().unwrap();
-    }
-
     fn init(&self) {
         preflight().unwrap();
         init().unwrap();
+    }
+
+    fn up(&self) {
+        up().unwrap();
     }
 
     fn down(&self) {
         down().unwrap();
     }
 
-    fn switch(&self) {
-        switch().unwrap();
-    }
-
     fn clean(&self) {
         clean().unwrap();
+    }
+
+    fn switch(&self) {
+        switch().unwrap();
     }
 }

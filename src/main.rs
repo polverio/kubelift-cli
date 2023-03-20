@@ -56,7 +56,7 @@ fn main() {
     let this = KubeLiftCli::parse();
 
     match &this.command {
-        Some(KubeLiftCommands::Up {}) => {
+        Some(KubeLiftCommands::Up{ .. }) => {
             instance.unwrap().up();
         }
 
