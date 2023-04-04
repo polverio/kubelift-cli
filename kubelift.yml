@@ -1,5 +1,0 @@
-cloud: AzurePublic
-options:
-  image: polverio:kubelift:solo:latest
-  location: westeurope
-  size: Standard_B4ms

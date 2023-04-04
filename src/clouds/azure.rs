@@ -1,18 +1,15 @@
-use crate::KubeLiftCli;
 use kubelift::Appliance;
 use kubelift::KubeLiftConfig;
 
 use anyhow::{Ok, Result};
 use chrono::{SecondsFormat, Utc};
-use clap::Parser;
+// use clap::Parser;
 use core::time::Duration;
-use minreq;
-use question::{Answer, Question};
+
 use random_string::generate;
 use serde_json::{self};
 use serde_yaml::{self};
 use spinners::{Spinner, Spinners};
-use std::process::exit;
 use std::{fs::copy, path::Path, thread::sleep};
 use xshell::{cmd, Shell};
 
@@ -38,10 +35,10 @@ fn generate_new_instance_id() -> String {
     return format!("{}", generate(5, charset).to_string());
 }
 
-fn azure_marketplace_terms_have_been_accepted() -> bool {
-    let cli_config = config();
-    return cli_config.accept_azure_marketplace_terms;
-}
+// fn azure_marketplace_terms_have_been_accepted() -> bool {
+//     let cli_config = config();
+//     return cli_config.accept_azure_marketplace_terms;
+// }
 
 /// Initializes the kubelift.yml file 
 fn init() -> Result<()> {
@@ -56,7 +53,7 @@ fn init() -> Result<()> {
     options:
         location: westeurope
         size: Standard_B4ms
-        image: polverio:kubelift:solo:latest
+        image: MicrosoftCBLMariner:cbl-mariner:cbl-mariner-2-gen2:latest
         tags: kubelift-instance=true
     "#;
 
@@ -99,53 +96,53 @@ fn up() -> Result<()> {
     //     .quiet()
     //     .run()?;
 
-    let mut sp = Spinner::new(
-        Spinners::Dots,
-        format!("Getting Azure Marketplace status for {}", image).into(),
-    );
+    // let mut sp = Spinner::new(
+    //     Spinners::Dots,
+    //     format!("Getting Azure Marketplace status for {}", image).into(),
+    // );
 
-    let terms_show = cmd!(sh, "az vm image terms show --urn {image}")
-        .quiet()
-        .read()?;
+    // let terms_show = cmd!(sh, "az vm image terms show --urn {image}")
+    //     .quiet()
+    //     .read()?;
 
-    let terms: serde_json::Value = serde_json::from_str(&terms_show)?;
-    let terms_accepted = terms["accepted"].as_bool().unwrap();
-    let marketplace_terms_link = terms["marketplaceTermsLink"].as_str().unwrap();
-    sp.stop_with_symbol(" \x1b[32m✔\x1b[0m");
+    // let terms: serde_json::Value = serde_json::from_str(&terms_show)?;
+    // let terms_accepted = terms["accepted"].as_bool().unwrap();
+    // let marketplace_terms_link = terms["marketplaceTermsLink"].as_str().unwrap();
+    // sp.stop_with_symbol(" \x1b[32m✔\x1b[0m");
 
-    if terms_accepted == false {
-        let response = minreq::get(marketplace_terms_link)
-            .with_timeout(10)
-            .send()?;
-        println!(
-            "\n\nAZURE MARKETPLACE TERMS (please read)\n\n{}\n",
-            response.as_str()?
-        );
+    // if terms_accepted == false {
+    //     let response = minreq::get(marketplace_terms_link)
+    //         .with_timeout(10)
+    //         .send()?;
+    //     println!(
+    //         "\n\nAZURE MARKETPLACE TERMS (please read)\n\n{}\n",
+    //         response.as_str()?
+    //     );
 
-        let answer = Question::new("Accept the Azure Marketplace terms?")
-            .default(Answer::YES)
-            .show_defaults()
-            .confirm();
+    //     let answer = Question::new("Accept the Azure Marketplace terms?")
+    //         .default(Answer::YES)
+    //         .show_defaults()
+    //         .confirm();
 
-        if answer == Answer::YES || azure_marketplace_terms_have_been_accepted() {
-            // Accept terms
-            sp = Spinner::new(
-                Spinners::Dots,
-                format!("Accepting Azure Marketplace terms for {image}").into(),
-            );
-            let _terms_accept = cmd!(sh, "az vm image terms accept --urn {image}")
-                .quiet()
-                .ignore_stderr()
-                .read()?;
-            sp.stop_with_symbol(" \x1b[32m✔\x1b[0m");
-        } else {
-            println!("Aborting...");
-            exit(1);
-        }
-    }   
+    //     if answer == Answer::YES || azure_marketplace_terms_have_been_accepted() {
+    //         // Accept terms
+    //         sp = Spinner::new(
+    //             Spinners::Dots,
+    //             format!("Accepting Azure Marketplace terms for {image}").into(),
+    //         );
+    //         let _terms_accept = cmd!(sh, "az vm image terms accept --urn {image}")
+    //             .quiet()
+    //             .ignore_stderr()
+    //             .read()?;
+    //         sp.stop_with_symbol(" \x1b[32m✔\x1b[0m");
+    //     } else {
+    //         println!("Aborting...");
+    //         exit(1);
+    //     }
+    // }   
 
     // Provision Resource Group
-    sp = Spinner::new(
+    let mut sp = Spinner::new(
         Spinners::Dots,
         format!(
             "Creating cluster kubelift-{} in location {}",
@@ -204,9 +201,18 @@ fn up() -> Result<()> {
         .into(),
     );
 
+    sp = Spinner::new(Spinners::Dots, "Deploying KubeLift".into());
+    let _running = cmd!(sh, "ssh -tt -o 'StrictHostKeyChecking no' kubelift@{public_ip} 'curl -L0 https://raw.githubusercontent.com/polverio/releases/main/azure/prereqs.sh > /tmp/kubelift.sh && sudo sh /tmp/kubelift.sh'")
+        .ignore_stderr()
+        .read()?;
+    sp.stop_and_persist(
+        " \x1b[32m✔\x1b[0m",
+        "Completed deployment of KubeLift Solo".into(),
+    );
+
     // Retrieve the kubeconfig via SSH
     sp = Spinner::new(Spinners::Dots, "Awaiting appliance configuration".into());
-    let kubeconfig = cmd!(sh, "ssh -tt -o 'StrictHostKeyChecking no' kubelift@{public_ip} 'while [ ! -f /etc/kubernetes/admin.conf ]; do sleep 5; done; sudo cat /etc/kubernetes/admin.conf'" )
+    let kubeconfig = cmd!(sh, "ssh -tt -o 'StrictHostKeyChecking no' kubelift@{public_ip} 'sudo cat /etc/kubernetes/admin.conf'" )
         .quiet()
         .ignore_stderr()
         .read()?;
@@ -317,9 +323,9 @@ fn clean() -> Result<()> {
     Ok(())
 }
 
-fn config() -> KubeLiftCli {
-    return KubeLiftCli::parse();
-}
+// fn config() -> KubeLiftCli {
+//     return KubeLiftCli::parse();
+// }
 
 impl Appliance for KubeLift {
     fn smoke(&self) {
@@ -346,4 +352,52 @@ impl Appliance for KubeLift {
     fn switch(&self) {
         switch().unwrap();
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+use std::fs;
+  use std::path::Path;
+
+#[test]
+fn test_kubelift_config_file_exists() {
+    let file_exists = kubelift_config_file_exists();
+    assert_eq!(file_exists, Path::new("kubelift.yml").exists());
+}
+
+#[test]
+fn test_kubeconfig_exists() {
+    let file_exists = kubeconfig_exists();
+    assert_eq!(file_exists, Path::new("./.kubelift/kubeconfig").exists());
+}
+
+#[test]
+fn test_generate_new_instance_id() {
+    let instance_id = generate_new_instance_id();
+    assert_eq!(instance_id.len(), 5);
+    assert!(instance_id.chars().all(|c| c.is_ascii_lowercase() || c.is_digit(10)));
+}
+
+#[test]
+fn test_init() {
+    let kubelift = KubeLift;
+    kubelift.init();
+
+    let config_path = Path::new("kubelift.yml");
+    assert!(config_path.exists());
+
+    let contents = fs::read_to_string(config_path).unwrap();
+    let config: KubeLiftConfig = serde_yaml::from_str(&contents).unwrap();
+
+    assert_eq!(config.cloud, "AzurePublic");
+    assert_eq!(config.options.location, "westeurope");
+    assert_eq!(config.options.size, "Standard_B4ms");
+    assert_eq!(
+        config.options.image,
+        "MicrosoftCBLMariner:cbl-mariner:cbl-mariner-2-gen2:latest"
+    );
+    assert_eq!(config.options.tags, "kubelift-instance=true");
+}
+
 }
