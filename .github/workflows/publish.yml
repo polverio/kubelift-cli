@@ -1,0 +1,115 @@
+name: KubeLift
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    name: Test - ${{ matrix.platform.os_name }} with rust ${{ matrix.toolchain }}
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os_name: linux
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os_name: macos
+            os: macos-latest
+            target: x86_64-apple-darwin
+          - os_name: windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+        toolchain:
+          - stable
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache cargo & target directories
+        uses: Swatinem/rust-cache@v2
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          components: rustfmt
+      - name: Run cargo check
+        run: cargo check --workspace --locked --target=${{ matrix.platform.target }}
+      - name: Run cargo test
+        run: cargo test --workspace --locked --target=${{ matrix.platform.target }}
+
+    release:
+    name: Release - ${{ matrix.platform.release_for }}
+    if: startsWith( github.ref, 'refs/tags/v' ) || github.ref == 'refs/tags/test-release'
+    needs: [test]
+    strategy:
+      matrix:
+        platform:
+          - release_for: linux-x86_64
+            os: ubuntu-20.04
+            target: x86_64-unknown-linux-musl
+            bin: kubelift
+            name: kubelift-linux-amd64.tar.gz
+
+          - release_for: linux-aarch64
+            os: ubuntu-20.04
+            target: aarch64-unknown-linux-musl
+            bin: kubelift
+            name: kubelift-linux-aarch64.tar.gz
+
+          - release_for: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: kubelift.exe
+            name: kubelift-windows-amd64.zip
+
+          - release_for: macos-x86_64
+            os: macOS-latest
+            target: x86_64-apple-darwin
+            bin: kubelift
+            name: kubelift-darwin-x86_64.tar.gz
+
+          - release_for: macos-aarch64
+            os: macOS-latest
+            target: aarch64-apple-darwin
+            bin: kubelift
+            name: kubelift-darwin-aarch64.tar.gz
+
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build binary
+        uses: houseabsolute/actions-rust-cross@v0
+        with:
+          target: ${{ matrix.platform.target }}
+          args: "--locked --release"
+          strip: true
+      - name: Package as archive
+        shell: bash
+        run: |
+          cd target/${{ matrix.platform.target }}/release
+          if [[ "${{ matrix.platform.os }}" == "windows-latest" ]]; then
+            7z a ../../../${{ matrix.platform.name }} ${{ matrix.platform.bin }}
+          else
+            tar czvf ../../../${{ matrix.platform.name }} ${{ matrix.platform.bin }}
+          fi
+          cd -
+      - name: Generate SHA-256
+        if: matrix.platform.os == 'macos-latest'
+        run: shasum -a 256 ${{ matrix.platform.name }}
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: "kubelift-*"
+          body_path: Changes.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: startsWith( github.ref, 'refs/tags/v' )
