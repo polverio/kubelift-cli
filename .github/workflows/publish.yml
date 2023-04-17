@@ -47,7 +47,6 @@ jobs:
   release:
     name: Release - ${{ matrix.platform.release_for }}
     if: startsWith( github.ref, 'refs/tags/v' ) || github.ref == 'refs/tags/test-release'
-    needs:
     strategy:
       matrix:
         platform:
