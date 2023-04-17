@@ -50,7 +50,6 @@ Contributions or forks of this project are welcomed. If you choose to fork the p
 ## License
 
 Copyright 2023, The KubeLift Contributors
-Copyright 2023, Polverio Ltd
 
 ```
 Licensed under the Apache License, Version 2.0 (the "License");
