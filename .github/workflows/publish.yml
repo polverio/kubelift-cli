@@ -44,7 +44,7 @@ jobs:
       - name: Run cargo test
         run: cargo test --workspace --locked --target=${{ matrix.platform.target }}
 
-    release:
+  release:
     name: Release - ${{ matrix.platform.release_for }}
     if: startsWith( github.ref, 'refs/tags/v' ) || github.ref == 'refs/tags/test-release'
     needs: [test]
