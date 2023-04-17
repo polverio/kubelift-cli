@@ -19,15 +19,15 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - os_name: linux
-            os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - os_name: macos
+          # - os_name: linux
+          #   os: ubuntu-latest
+          #   target: x86_64-unknown-linux-musl
+          - os_name: macos-x86_64
             os: macos-latest
             target: x86_64-apple-darwin
-          - os_name: windows
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
+          # - os_name: windows
+          #   os: windows-latest
+          #   target: x86_64-pc-windows-msvc
         toolchain:
           - stable
     steps:
@@ -47,39 +47,20 @@ jobs:
   release:
     name: Release - ${{ matrix.platform.release_for }}
     if: startsWith( github.ref, 'refs/tags/v' ) || github.ref == 'refs/tags/test-release'
-    needs: [test]
+    # needs: [test]
     strategy:
       matrix:
         platform:
-          - release_for: linux-x86_64
-            os: ubuntu-20.04
-            target: x86_64-unknown-linux-musl
-            bin: kubelift
-            name: kubelift-linux-amd64.tar.gz
-
-          - release_for: linux-aarch64
-            os: ubuntu-20.04
-            target: aarch64-unknown-linux-musl
-            bin: kubelift
-            name: kubelift-linux-aarch64.tar.gz
-
-          - release_for: windows-x86_64
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
-            bin: kubelift.exe
-            name: kubelift-windows-amd64.zip
-
+          # - release_for: linux-x86_64
+          #   os: ubuntu-20.04
+          #   target: x86_64-unknown-linux-musl
+          #   bin: kubelift
+          #   name: kubelift-linux-amd64.tar.gz
           - release_for: macos-x86_64
-            os: macOS-latest
+            os: macos-latest
             target: x86_64-apple-darwin
             bin: kubelift
             name: kubelift-darwin-x86_64.tar.gz
-
-          - release_for: macos-aarch64
-            os: macOS-latest
-            target: aarch64-apple-darwin
-            bin: kubelift
-            name: kubelift-darwin-aarch64.tar.gz
 
     runs-on: ${{ matrix.platform.os }}
     steps:
