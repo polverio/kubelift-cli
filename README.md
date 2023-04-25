@@ -2,6 +2,8 @@
 
 KubeLift CLI is a cross-platform tool to quickly spin up a self-hosted Kubernetes appliance in your Azure subscription for testing purposes. Once created, the tool will retrieve the administrative kubeconfig for the appliance and change context to it.
 
+[![asciicast](https://asciinema.org/a/557588.svg)](https://asciinema.org/a/557588)
+
 KubeLift uses the [Microsoft CBL-Mariner 2.0 Linux](https://microsoft.github.io/CBL-Mariner/) distribution.
 
 ## Usage
