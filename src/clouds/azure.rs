@@ -5,6 +5,8 @@ use anyhow::{Ok, Result};
 use chrono::{SecondsFormat, Utc};
 use core::time::Duration;
 use std::fs;
+
+#[cfg(not(target_os = "windows"))]
 use std::os::unix::prelude::PermissionsExt;
 
 use random_string::generate;
@@ -175,9 +177,12 @@ fn up() -> Result<()> {
     sh.write_file("./.kubelift/kubeconfig", &updated_kubeconfig)
         .unwrap();
 
-    let mut perms = fs::metadata("./.kubelift/kubeconfig")?.permissions();
-    perms.set_mode(0o600);
-    fs::set_permissions("./.kubelift/kubeconfig", perms)?;
+    #[cfg(not(target_os = "windows"))]
+    {
+        let mut perms = fs::metadata("./.kubelift/kubeconfig")?.permissions();
+        perms.set_mode(0o600);
+        fs::set_permissions("./.kubelift/kubeconfig", perms)?;
+    }
 
     sp.stop_and_persist(
         " \x1b[32m✔\x1b[0m",
