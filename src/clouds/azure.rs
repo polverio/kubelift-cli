@@ -38,6 +38,12 @@ fn generate_new_instance_id() -> String {
     return format!("{}", generate(5, charset).to_string());
 }
 
+#[cfg(not(target_os = "windows"))]
+const PLATFORM_SPECIFIC_AZ_COMMAND: &str = "az";
+
+#[cfg(target_os = "windows")]
+const PLATFORM_SPECIFIC_AZ_COMMAND: &str = "az.cmd";
+
 /// Initializes the kubelift.yml file
 fn init() -> Result<()> {
     let mut sp = Spinner::new(
@@ -99,8 +105,7 @@ fn up() -> Result<()> {
     );
     let resource_group = cmd!(
         sh,
-        "az group create -n kubelift-{instance_id} -l {location} -o json"
-    )
+        "{PLATFORM_SPECIFIC_AZ_COMMAND} group create -n kubelift-{instance_id} -l {location} -o json")
     .quiet()
     .read()?;
     sh.write_file("./.kubelift/resource_group.json", &resource_group)
@@ -112,7 +117,7 @@ fn up() -> Result<()> {
         Spinners::Dots,
         "Creating appliance from Azure Marketplace".into(),
     );
-    let vm: String = cmd!(sh, "az vm create --resource-group kubelift-{instance_id} --name {instance_id} --image {image} --admin-username kubelift --generate-ssh-keys --size {size} --public-ip-sku Standard --tags {tags}")
+    let vm: String = cmd!(sh, "{PLATFORM_SPECIFIC_AZ_COMMAND} vm create --resource-group kubelift-{instance_id} --name {instance_id} --image {image} --admin-username kubelift --generate-ssh-keys --size {size} --public-ip-sku Standard --tags {tags}")
         .quiet()
         .ignore_stderr()
         .read()?;
@@ -126,7 +131,7 @@ fn up() -> Result<()> {
     );
     let _nsg: String = cmd!(
         sh,
-        "az vm open-port --resource-group kubelift-{instance_id} --name {instance_id} --port '*'"
+        "{PLATFORM_SPECIFIC_AZ_COMMAND} vm open-port --resource-group kubelift-{instance_id} --name {instance_id} --port '*'"
     )
     .quiet()
     .ignore_stderr()
@@ -255,7 +260,7 @@ fn down() -> Result<()> {
             format!("Deleting KubeLift instance: {}", full_instance_id).into(),
         );
 
-        let _resource_group = cmd!(sh, "az group delete -n {full_instance_id} --force-deletion-types Microsoft.Compute/virtualMachines --no-wait --yes")
+        let _resource_group = cmd!(sh, "{PLATFORM_SPECIFIC_AZ_COMMAND} group delete -n {full_instance_id} --force-deletion-types Microsoft.Compute/virtualMachines --no-wait --yes")
         .quiet()
         .read()?;
 
