@@ -1,6 +1,6 @@
 [package]
 name = "kubelift"
-version = "0.0.10"
+version = "0.0.11"
 description = "KubeLift"
 authors = ["Stuart Preston", "Polverio Ltd", "The KubeLift contributors"]
 license = "Apache-2.0"
