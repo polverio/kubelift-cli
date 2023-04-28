@@ -448,7 +448,7 @@ dependencies = [
 
 [[package]]
 name = "kubelift"
-version = "0.0.0"
+version = "0.0.10"
 dependencies = [
  "anyhow",
  "chrono",
