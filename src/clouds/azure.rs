@@ -4,6 +4,7 @@ use kubelift::KubeLiftConfig;
 use anyhow::{Ok, Result};
 use chrono::{SecondsFormat, Utc};
 use core::time::Duration;
+use std::fs;
 
 use random_string::generate;
 use serde_json::{self};
@@ -21,7 +22,7 @@ fn kubelift_config() -> KubeLiftConfig {
     return config;
 }
 
-fn kubeconfig_exists() -> bool {
+fn local_kubeconfig_exists() -> bool {
     return Path::new("./.kubelift/kubeconfig").exists();
 }
 
@@ -210,8 +211,14 @@ fn switch() -> Result<()> {
         .to_string_lossy()
         .to_string();
 
-    if kubeconfig_exists() {
-        copy(&kubeconfig_location_global, &kubeconfig_location_backup).unwrap();
+    if local_kubeconfig_exists() {
+        let kube_path = Path::new(&kubeconfig_location_global).parent().unwrap(); 
+        if Path::exists(kube_path) {
+            copy(&kubeconfig_location_global, &kubeconfig_location_backup).unwrap();
+        } 
+        else {
+            fs::create_dir_all(kube_path).unwrap();
+        }
         copy(".kubelift/kubeconfig", &kubeconfig_location_global).unwrap();
     }
 
@@ -255,6 +262,7 @@ fn clean() -> Result<()> {
     let mut sp = Spinner::new(Spinners::Dots, "Cleaning up config files".into());
     let sh = Shell::new()?;
     sh.remove_path("./.kubelift").unwrap();
+    sh.remove_path("./kubelift.yml").unwrap();
     sp.stop_and_persist(" \x1b[32m✔\x1b[0m", "Cleaned up config files".into());
 
     Ok(())
@@ -300,8 +308,8 @@ mod tests {
     }
 
     #[test]
-    fn test_kubeconfig_exists() {
-        let file_exists = kubeconfig_exists();
+    fn test_local_kubeconfig_exists() {
+        let file_exists = local_kubeconfig_exists();
         assert_eq!(file_exists, Path::new("./.kubelift/kubeconfig").exists());
     }
 
